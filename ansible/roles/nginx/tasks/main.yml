@@ -1,6 +1,6 @@
 ---
 # file: roles/nginx/tasks/main.yml
-- name: Install aptitude and unzip packages 
+- name: Install aptitude and nginx packages 
   apt:
     name: "{{ packages }}"
     state: present
