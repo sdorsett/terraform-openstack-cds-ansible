@@ -1,10 +1,5 @@
-
 ---
 # file: roles/postgresql/tasks/main.yml
-#- name: Run postgresql install script
-#  script: install_postgresql.sh 
-#  args:
-#    creates: /tmp/create-cds-db.sql
 - name: Check if /dev/sdb1 has been created 
   shell: fdisk -l /dev/sdb1 && echo Configured || echo Unconfigured 
   register: fdisk_output
