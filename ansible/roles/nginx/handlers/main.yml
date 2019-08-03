@@ -1,0 +1,6 @@
+---
+# file: roles/nginx/handlers/main.yml
+- name: restart nginx
+  systemd:
+    state: restarted
+    name: nginx
