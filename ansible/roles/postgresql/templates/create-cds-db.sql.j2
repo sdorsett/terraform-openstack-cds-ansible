@@ -1,0 +1,4 @@
+CREATE DATABASE cds;
+CREATE ROLE "cds" WITH PASSWORD 'cds';
+grant all privileges on database cds to cds;
+ALTER ROLE "cds" WITH LOGIN;

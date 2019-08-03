@@ -8,9 +8,6 @@
 - name: Check if /dev/sdb1 has been created 
   shell: fdisk -l /dev/sdb1 && echo Configured || echo Unconfigured 
   register: fdisk_output
-- name: debug fdisk_output
-  debug:
-    msg: fdisk_output {{ fdisk_output.stdout}}
 - name: Create /dev/sdb1 partition
   shell: echo 'n\np\n1\n\n\nt\n83\np\nw\n' | sudo fdisk /dev/sdb 
   when: fdisk_output.stdout == "Unconfigured"
@@ -22,10 +19,38 @@
     path: /var/lib/postgresql/
     state: directory
     mode: '0755'
-- name: Ensure /dev/sdb1 mount is added to /etc/fstab
+- name: Mount drive
+  mount:
+    path: "/var/lib/postgresql/"
+    src: "/dev/sdb1"
+    fstype: ext4
+    opts: defaults
+    state: mounted
+- name: Install postgresql package
+  apt:
+    name: "postgresql"
+    state: present
+    update_cache: true
+- name: Add a line to /etc/postgresql/10/main/postgresql.conf to have postgresql listen on all interfaces 
   lineinfile:
-    path: /etc/fstab
-    regexp: '^/dev/sdb1'
-    line: '/dev/sdb1    /var/lib/postgresql/   ext4    defaults     0        2'
-- name: Mount all file systems in /etc/fstab
-  shell: mount -a 
+    path: /etc/postgresql/10/main/postgresql.conf
+    line: listen_addresses = '*'
+    create: yes
+- name: Add a line to /etc/postgresql/10/main/pg_hba.conf to allow connections from all 10.240.0.0 ip addresses 
+  lineinfile:
+    path: /etc/postgresql/10/main/pg_hba.conf 
+    line: 'host    all             all              10.240.0.0/24                   md5'
+    create: yes
+  notify: restart postgresql
+- name: Flush handlers
+  meta: flush_handlers
+- name: Create /tmp/create-cds-db.sql
+  template:
+    src: create-cds-db.sql.j2
+    dest: /tmp/create-cds-db.sql
+    owner: root
+    group: root
+    mode: '0644'
+- name: Create CDS database by running /tmp/create-cds-db.sql
+  shell: sudo -u postgres psql -a -f /tmp/create-cds-db.sql
+
