@@ -1,0 +1,31 @@
+
+---
+# file: roles/postgresql/tasks/main.yml
+#- name: Run postgresql install script
+#  script: install_postgresql.sh 
+#  args:
+#    creates: /tmp/create-cds-db.sql
+- name: Check if /dev/sdb1 has been created 
+  shell: fdisk -l /dev/sdb1 && echo Configured || echo Unconfigured 
+  register: fdisk_output
+- name: debug fdisk_output
+  debug:
+    msg: fdisk_output {{ fdisk_output.stdout}}
+- name: Create /dev/sdb1 partition
+  shell: echo 'n\np\n1\n\n\nt\n83\np\nw\n' | sudo fdisk /dev/sdb 
+  when: fdisk_output.stdout == "Unconfigured"
+- name: Format /dev/sdb1 partition
+  shell: mkfs -t ext4 /dev/sdb1 
+  when: fdisk_output.stdout == "Unconfigured"
+- name: Create /var/lib/postgresql/ directory
+  file:
+    path: /var/lib/postgresql/
+    state: directory
+    mode: '0755'
+- name: Ensure /dev/sdb1 mount is added to /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '^/dev/sdb1'
+    line: '/dev/sdb1    /var/lib/postgresql/   ext4    defaults     0        2'
+- name: Mount all file systems in /etc/fstab
+  shell: mount -a 
