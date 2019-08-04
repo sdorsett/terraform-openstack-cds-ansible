@@ -96,4 +96,17 @@
      - cds-vcs.service
 - name: Check if cdsctl is logged in
   shell: /usr/local/bin/cdsctl user me 
-
+- name: Create kubernetes-hatchery shared token
+  shell: cdsctl token generate shared.infra persistent 'kubernetes-hatchery' |  grep token | awk '{print($2)}' | tee /opt/cds/kubernetes-hatchery-token 
+  args:
+    creates: /opt/cds/kubernetes-hatchery-token
+- name: Create github-integration shared token
+  shell: cdsctl token generate shared.infra persistent 'github-integration' |  grep token | awk '{print($2)}' | tee /opt/cds/github-integration-token
+  args:
+    creates: /opt/cds/github-integration-token
+- name: Get kubernetes-hatchery-token
+  shell: cat /opt/cds/kubernetes-hatchery-token 
+  register: kubernetes-hatchery-token
+- name: Get github-integration-token
+  shell: cat /opt/cds/github-integration-token
+  register: github-integration-token
