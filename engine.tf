@@ -4,7 +4,7 @@ resource "openstack_compute_instance_v2" "cds-engine" {
   flavor_id       = "${data.openstack_compute_flavor_v2.s1-2.id}"
   key_pair        = "${data.openstack_compute_keypair_v2.deploy-keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.terraform-cds-allow-external.name}"]
-  user_data       = templatefile("${path.module}/cloud-init.tpl", { private_ip = "10.240.0.6" })
+  user_data       = templatefile("${path.module}/cloud-init.tpl", { private_ip = "10.240.0.91" })
 
   network {
     name = "Ext-Net"

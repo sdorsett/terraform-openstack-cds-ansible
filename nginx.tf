@@ -1,4 +1,4 @@
-resource "openstack_compute_instance_v2" "nginx" {
+resource "openstack_compute_instance_v2" "cds-nginx" {
   name            = "cds-nginx"
   image_id        = data.openstack_images_image_v2.ubuntu_18_04.id
   flavor_id       = data.openstack_compute_flavor_v2.s1-2.id

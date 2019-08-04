@@ -1,0 +1,99 @@
+---
+# file: roles/cds/tasks/main.yml
+- name: Create /opt/cds/download directory
+  file:
+    path: /opt/cds/download
+    state: directory
+    mode: '0755'
+- name: Download cds-engine binary
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/cds-engine-{{ cds_os }}-{{ cds_arch }} 
+    dest: /opt/cds/cds-engine-{{ cds_os }}-{{ cds_arch }}
+    mode: '0755'
+- name: Download ui.tar.gz file
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/ui.tar.gz
+    dest: /opt/cds/ui.tar.gz
+    mode: '0755'
+- name: Download sql.tar.gz file
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/sql.tar.gz
+    dest: /opt/cds/sql.tar.gz
+    mode: '0755'
+- name: Download cdsctl binary
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/cdsctl-{{ cds_os }}-386
+    dest: /opt/cds/cdsctl-{{ cds_os }}-386
+    mode: '0755'
+- name: Copy cdsctl to /usr/local/bin/
+  copy:
+    src: /opt/cds/cdsctl-{{ cds_os }}-386
+    dest: /usr/local/bin/cdsctl
+    remote_src: yes
+- name: Download cds-worker binary
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/cds-worker-{{ cds_os }}-{{ cds_arch }}
+    dest: /opt/cds/download/cds-worker-{{ cds_os }}-{{ cds_arch }}
+    mode: '0755'
+- name: Extract sql.tar.gz into /opt/cds
+  unarchive:
+    src: /opt/cds/sql.tar.gz
+    dest: /opt/cds/
+    remote_src: yes
+- name: Migrate cds database
+  shell: "/opt/cds/cds-engine-linux-amd64 database upgrade --db-host 10.240.0.90 --db-user cds --db-password cds --db-name cds --db-sslmode disable --db-port 5432 --migrate-dir sql"
+  args:
+    chdir: /opt/cds/
+- name: Extract ui.tar.gz into /opt/cds
+  unarchive:
+    src: /opt/cds/ui.tar.gz
+    dest: /opt/cds/
+    remote_src: yes
+- name: Download caddy binary
+  get_url:
+    url: https://github.com/ovh/cds/releases/download/0.8.0/caddy-{{ cds_os }}-{{ cds_arch }}
+    dest: /opt/cds/dist/caddy-{{ cds_os }}-{{ cds_arch }}
+    mode: '0755'
+- name: Copy conf.toml to /opt/cds
+  copy:
+    src: "{{ item }}"
+    dest:  /opt/cds/{{ item }}
+    owner: root
+    group: root
+    mode: '0644'
+  with_items:
+     - conf.toml
+     - api-config.toml
+     - hooks-config.toml
+     - vcs-config.toml
+- name: Copy cds service files
+  copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/{{ item }}
+    owner: root
+    group: root
+    mode: '0644'
+  with_items:
+     - cds-api.service  
+     - cds-hatchery.service  
+     - cds-hooks.service  
+     - cds-ui.service  
+     - cds-vcs.service
+- name: Update CDS_PUBLIC_IP_ADDRESS in cds .toml config files 
+  shell: sed -i "s/XXX_CDS_PUBLIC_IP_ADDRESS_XXX/{{ hostvars['cds-nginx']['openstack']['public_v4'] }}/g" /opt/cds/*.toml 
+  args:
+    warn: no
+- name: restart cds services
+  systemd:
+    state: restarted
+    name: "{{ item }}"
+    enabled: yes
+  with_items:
+     - cds-api.service
+     - cds-hatchery.service
+     - cds-hooks.service
+     - cds-ui.service
+     - cds-vcs.service
+- name: Check if cdsctl is logged in
+  shell: /usr/local/bin/cdsctl user me 
+

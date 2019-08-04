@@ -1,0 +1,6 @@
+---
+# file: roles/cds/vars/main.yml
+cds_os: linux 
+cds_arch: amd64
+cds_version: 0.40.0
+

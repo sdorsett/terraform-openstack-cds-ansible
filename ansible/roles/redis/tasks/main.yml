@@ -1,0 +1,15 @@
+---
+# file: roles/redis/tasks/main.yml
+- name: install redis packages
+  apt:
+    name: ['aptitude','redis','redis-tools','screen']
+    state: present
+- name: enable redis-server service 
+  systemd:
+    name: redis-server
+    state: started
+    enabled: yes
+  #apt-get update
+  #apt install redis-tools redis screen -y
+  #redis-server -v
+  #systemctl enable redis-server
