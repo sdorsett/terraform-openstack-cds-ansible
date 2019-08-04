@@ -30,6 +30,9 @@
     src: /opt/cds/cdsctl-{{ cds_os }}-386
     dest: /usr/local/bin/cdsctl
     remote_src: yes
+    owner: root
+    group: root
+    mode: '0755'
 - name: Download cds-worker binary
   get_url:
     url: https://github.com/ovh/cds/releases/download/{{ cds_version }}/cds-worker-{{ cds_os }}-{{ cds_arch }}
@@ -104,9 +107,36 @@
   shell: cdsctl token generate shared.infra persistent 'github-integration' |  grep token | awk '{print($2)}' | tee /opt/cds/github-integration-token
   args:
     creates: /opt/cds/github-integration-token
-- name: Get kubernetes-hatchery-token
+- name: Get kubernetes_hatchery_token
   shell: cat /opt/cds/kubernetes-hatchery-token 
-  register: kubernetes-hatchery-token
-- name: Get github-integration-token
+  register: kubernetes_hatchery_token
+- name: Get github_integration_token
   shell: cat /opt/cds/github-integration-token
-  register: github-integration-token
+  register: github_integration_token
+- name: Update XXX_KUBERNETES_SHARED_INFRA_TOKEN_XXX in cds .toml config files
+  shell: sed -i "s/XXX_KUBERNETES_SHARED_INFRA_TOKEN_XXX/{{ kubernetes_hatchery_token.stdout }}/g" /opt/cds/*.toml
+  args:
+    warn: no
+- name: Update XXX_GITHUB_SHARED_INFRA_TOKEN_XXX in cds .toml config files
+  shell: sed -i "s/XXX_GITHUB_SHARED_INFRA_TOKEN_XXX/{{ github_integration_token.stdout }}/g" /opt/cds/*.toml
+  args:
+    warn: no
+- name: debug github_client_id
+  debug:
+    msg: "{{ github_client_id }}"
+- name: Update XXX_GITHUB_CLIENT_ID_XXX in cds .toml config files
+  shell: sed -i "s/XXX_GITHUB_CLIENT_ID_XXX/{{ github_client_id }}/g" /opt/cds/*.toml
+  args:
+    warn: no
+- name: Update XXX_GITHUB_CLIENT_SECRET_XXX in cds .toml config files
+  shell: sed -i "s/XXX_GITHUB_CLIENT_SECRET_XXX/{{ github_client_secret }}/g" /opt/cds/*.toml
+  args:
+    warn: no
+- name: restart cds services
+  systemd:
+    state: restarted
+    name: "{{ item }}"
+    enabled: yes
+  with_items:
+     - cds-hatchery.service
+     - cds-vcs.service
